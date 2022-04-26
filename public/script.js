@@ -25,29 +25,55 @@ const listUsers = () => {
 }
 
 const listRooms = () => {
-    const userTag = document.getElementById("list-users")
+    const roomTag = document.getElementById("list-rooms")
 
-    userTag.innerHTML = ""
-    Object.keys(state.users).map((i) => {
-        const user = state.users[i]
+    roomTag.innerHTML = ""
+    Object.keys(state.rooms).map((i) => {
+        const room = state.rooms[i]
 
         const div = document.createElement("div")
         const p = document.createElement("p")
 
-        div.className = "users"
+        div.className = "rooms"
 
-        p.innerHTML = user.name
+        p.innerHTML = room.name
         div.appendChild(p)
-        userTag.appendChild(div)
+        roomTag.appendChild(div)
     })
 }
 
+document.getElementById("create-room-submit").addEventListener("click", () => {
+    const name = String(document.querySelector("#name-room").value)
+
+    const invalidName = () => {
+        Object.keys(state.rooms).map((i) => {
+            if (state.rooms[i].name == name) { return true }
+        })
+    }
+
+    if (name != null && name != undefined && name != "") {
+        const validName = invalidName()
+
+        if (validName) {
+            alert("Este nome já existe!")
+        } else {
+            socket.emit("create-room", name)
+        }
+    } else {
+        alert("Por favor, insira um nome para sala!")
+    }
+})
+
 socket.on("connect", () => {
-    console.log(`Console: Player connected with id ${socket.id}`)
     listUsers()
 })
 
 socket.on("refresh-users", (users) => {
     state.users = users
     listUsers()
+})
+
+socket.on("refresh-rooms", (rooms) => {
+    state.rooms = rooms
+    listRooms()
 })

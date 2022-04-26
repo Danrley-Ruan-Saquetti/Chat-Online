@@ -7,6 +7,15 @@ body {
     height: 100vh;
     overflow: hidden;
 }
+input,
+button {
+    background: none;
+    border: 1px solid black;
+    outline: none;
+}
+button:hover {
+    cursor: pointer;
+}
 main {
     display: flex;
     width: 100vw;
@@ -18,9 +27,10 @@ main {
 #side-bar {
     display: flex;
     flex-direction: column;
-    width: 30%;
+    min-width: 30%;
     height: 100%;
     border: 1px solid black;
+    overflow: auto;
 }
 #open-rooms,
 #connected-users {
@@ -30,6 +40,11 @@ main {
 .content {
     background-color: rgba(0, 0, 0, .2);
 }
+.users,
+.rooms,
+.content {
+    padding: 1rem .5rem 1rem .5rem;
+}
 
 /* Salas */
 
@@ -37,16 +52,32 @@ main {
     background-color: rgba(0, 0, 0, .2);
 }
 
+/* Criar Salas */
+
+#create-room {
+    display: flex;
+    width: 100%;
+}
+#name-room {
+    padding: 1rem .5rem 1rem .5rem;
+    width: 80%;
+}
+#create-room-submit {
+    width: 20%;
+}
+
 /* Usuário */
 
-.users {
+.users,
+.rooms {
     background-color: rgba(255, 0, 0, 0.2);
 }
 
 /* Chat */
 
 #chat {
-    width: 70%;
+    width: auto;
     height: 100%;
     border: 1px solid black;
+    overflow: auto;
 }
