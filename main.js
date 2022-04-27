@@ -7,49 +7,116 @@ const server = http.createServer(app)
 const sockets = socketio(server)
 const port = 3000
 
-const createRoom = (creator, name) => {
-    const ID_LENGTH = 20
-    const validId = (id) => {
-        Object.keys(state.rooms).map((i) => {
-            if (state.rooms[i].id == id) return true
+const LENGTH_ID = 20
+
+const GENERATED_ID = (obj) => {
+    const CASES = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+    const VALID_ID = (id) => {
+        Object.keys(obj).map((i) => {
+            if (obj[i].id == id) return false
         })
-    }
-    const createId = () => {
-        const CASES = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-        let id = ""
-        do {
-            for (let i = 0; i < ID_LENGTH; i++) {
-                id += CASES[Math.round(Math.random() * (ID_LENGTH - 1))]
-            }
-        } while (validId(id))
-
-        return id
+        return true
     }
 
-    const ID_ROOM = createId()
+    let id = ""
+    do {
+        for (let i = 0; i < LENGTH_ID; i++) id += CASES[Math.round(Math.random() * CASES.length - 1)]
+    } while (!VALID_ID(id));
 
-    state.rooms[ID_ROOM] = {
-        id: ID_ROOM,
-        creator: creator,
-        name: name
-    }
-
-    refreshRooms()
+    return id
 }
 
 const state = {
     users: {},
-    msg: {},
     rooms: {}
 }
 
-const refreshUsers = () => {
-    sockets.emit("refresh-users", state.users)
+const onEvents = {
+    createUser: (id) => {
+        state.users[id] = {
+            id: id,
+            name: "User_" + id.substr(0, 5),
+            roomConnected: null
+        }
+
+        console.log(`${id} connected!`);
+        refresh.user()
+    },
+    deleteUser: (socket) => {
+        if (state.users[socket.id].roomConnected != null) {
+            onEvents.logoutRoom(socket, state.users[socket.id].roomConnected)
+        }
+        console.log(`${socket.id} disconnected!`);
+        delete state.users[socket.id]
+
+        refresh.user()
+    },
+    createRoom: (creator, name) => {
+        const id = GENERATED_ID(state.rooms)
+        state.rooms[id] = {
+            id: id,
+            idCreator: creator.id,
+            name: name,
+            creator: creator.name,
+            posts: {}
+        }
+
+        console.log(`${creator.id} create room ${id}!`);
+        refresh.room()
+    },
+    createPost: (post) => {
+        const id = GENERATED_ID(state.rooms[post.room].posts)
+        state.rooms[post.room].posts[id] = {
+            id: id,
+            idCreator: post.idCreator,
+            type: post.type,
+            creator: post.name,
+            body: post.body
+        }
+
+        if (post.type == "post") {
+            console.log(`${post.idCreator} send post room ${post.room}!`);
+        }
+        refresh.posts(post.room)
+    },
+    loginRoom: (socket, id) => {
+        const user = state.users[socket.id]
+        if (user.roomConnected != id) {
+            if (user.roomConnected != null) {
+                onEvents.logoutRoom(socket, user.roomConnected)
+            }
+            user.roomConnected = id
+
+            console.log(`${user.id} login room ${id}!`);
+            refresh.userConnected()
+            onEvents.createPost({ room: id, idCreator: user.id, name: user.name, type: "information", body: `New user connected: ${user.name}` })
+        }
+    },
+    logoutRoom: (socket, id) => {
+        const user = state.users[socket.id]
+        console.log(`${user.id} disconnected room ${id}!`);
+        onEvents.createPost({ room: id, idCreator: user.id, name: user.name, type: "information", body: `User disconnected: ${user.name}` })
+    },
+    renameUser: (user) => {
+        state.users[user.id].name = user.name
+        refresh.user()
+    }
 }
 
-const refreshRooms = () => {
-    sockets.emit("refresh-rooms", state.rooms)
+const refresh = {
+    user: () => {
+        sockets.emit("refreshUsers", state.users)
+    },
+    room: () => {
+        sockets.emit("refreshRooms", state.rooms)
+    },
+    userConnected: () => {
+        sockets.emit("userConnected", state.users)
+    },
+    posts: (room) => {
+        sockets.emit("refreshPosts", { room: room, posts: state.rooms[room].posts })
+    }
 }
 
 app.use(express.static("public"))
@@ -60,23 +127,27 @@ server.listen(port, () => {
 
 
 sockets.on("connection", (socket) => {
-    console.log(`${socket.id} connected!`);
+    onEvents.createUser(socket.id)
 
-    state.users[socket.id] = {
-        name: "User_" + socket.id.substring(0, 5)
-    }
-
-    refreshUsers()
-    refreshRooms()
+    refresh.room()
 
     socket.on("disconnect", () => {
-        console.log(`${socket.id} disconnected!`);
-        delete state.users[socket.id]
-        refreshUsers()
+        onEvents.deleteUser(socket)
     })
 
-    socket.on("create-room", (name) => {
-        console.log(`${socket.id} create room ${name}!`);
-        createRoom(state.users[socket.id].name, name)
+    socket.on("rename-user", (name) => {
+        onEvents.renameUser({ id: socket.id, name: name })
+    })
+
+    socket.on("createRoom", (name) => {
+        onEvents.createRoom(socket, name)
+    })
+
+    socket.on("loginRoom", (id) => {
+        onEvents.loginRoom(socket, id)
+    })
+
+    socket.on("sendPost", (body) => {
+        onEvents.createPost({ room: state.users[socket.id].roomConnected, idCreator: socket.id, name: state.users[socket.id].name, type: "post", body: body })
     })
 })

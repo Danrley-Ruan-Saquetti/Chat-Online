@@ -11,10 +11,13 @@
 </head>
 
 <body>
+
     <main>
         <div id="side-bar">
             <div id="open-rooms">
-                <div id="content-room" class="content"><span>Lista de Salas</span></div>
+                <div id="content-room" class="content">
+                    <center><span>Lista de Salas</span></center>
+                </div>
                 <div id="create-room">
                     <input type="text" name="name-room" id="name-room" placeholder="Insira o nome da sala...">
                     <button type="submit" id="create-room-submit"><span>></span></button>
@@ -22,12 +25,18 @@
                 <div id="list-rooms"></div>
             </div>
             <div id="connected-users">
-                <div id="content-user" class="content"><span>Lista de Usuários</span></div>
+                <div id="content-user" class="content">
+                    <center><span>Lista de Usuários</span></center>
+                </div>
                 <div id="list-users"></div>
             </div>
         </div>
-        <div id="chat"></div>
+        <div id="chat">
+            <div id="list-posts"></div>
+            <div id="camp-write"></div>
+        </div>
     </main>
+
     <script src="script.js"></script>
 </body>
 
