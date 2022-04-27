@@ -1,12 +1,18 @@
 const socket = io()
 
 let thisId
-let nameUser = prompt("Informe o o nome de usuário: ")
+
+let nameUser
+do {
+    nameUser = prompt("Informe o o nome de usuário: ")
+} while (nameUser == null);
 
 const state = {
     users: {},
     rooms: {}
 }
+
+let validCreateCampWrite = true
 
 const list = {
     users: () => {
@@ -76,7 +82,6 @@ const list = {
             const divMain = document.createElement("div")
             const pBody = document.createElement("p")
 
-
             divMain.className = "posts"
             if (post.idCreator == thisId) { divMain.className += " this" }
             divMain.id = post.id
@@ -87,22 +92,51 @@ const list = {
 
             if (post.type == "post") {
                 const pCreator = document.createElement("p")
+                const spanTime = document.createElement("span")
+                const spanCreator = document.createElement("span")
 
-                pCreator.id = "creator"
+                pCreator.id = "authors"
                 pCreator.className = "posts-creators"
 
-                pCreator.innerHTML = post.creator
+                spanCreator.innerHTML = post.creator + " - "
 
+                if (post.time.days > 0) {
+                    spanTime.innerHTML = post.time.days + " days"
+                } else if (post.time.hours > 0) {
+                    spanTime.innerHTML = post.time.hours + " hours"
+                } else {
+                    spanTime.innerHTML = post.time.minutes + " minutes"
+                }
+
+                pCreator.appendChild(spanCreator)
+                pCreator.appendChild(spanTime)
                 divMain.appendChild(pCreator)
             } else if (post.type == "information") {
                 divMain.className += " info"
             }
 
             divMain.appendChild(pBody)
+            divMain.appendChild(pBody)
 
             list.appendChild(divMain)
         })
+    }
+}
 
+const EMIT_EVENTS = {
+    createRoom: (name) => {
+        socket.emit("createRoom", name)
+    },
+    loginRoom: (id) => {
+        socket.emit("loginRoom", id)
+    },
+    sendPost: (body) => {
+        socket.emit("sendPost", body)
+    },
+    renameUser: () => {
+        socket.emit("rename-user", nameUser)
+    },
+    createCampWrite: () => {
         const campWrite = document.getElementById("camp-write")
         campWrite.innerHTML = ""
 
@@ -123,21 +157,6 @@ const list = {
                 EMIT_EVENTS.sendPost(body)
             }
         })
-    }
-}
-
-const EMIT_EVENTS = {
-    createRoom: (name) => {
-        socket.emit("createRoom", name)
-    },
-    loginRoom: (id) => {
-        socket.emit("loginRoom", id)
-    },
-    sendPost: (body) => {
-        socket.emit("sendPost", body)
-    },
-    renameUser: () => {
-        socket.emit("rename-user", nameUser)
     }
 }
 
@@ -176,6 +195,11 @@ socket.on("connect", () => {
     socket.on("refreshPosts", (postConfig) => {
         state.rooms[postConfig.room].posts = postConfig.posts
         list.posts(state.users[thisId].roomConnected)
+
+        if (validCreateCampWrite) {
+            EMIT_EVENTS.createCampWrite()
+            validCreateCampWrite = false
+        }
     })
 })
 

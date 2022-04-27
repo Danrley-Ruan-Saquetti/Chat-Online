@@ -59,7 +59,8 @@ const onEvents = {
             idCreator: creator.id,
             name: name,
             creator: creator.name,
-            posts: {}
+            posts: {},
+            users: {}
         }
 
         console.log(`${creator.id} create room ${id}!`);
@@ -72,8 +73,34 @@ const onEvents = {
             idCreator: post.idCreator,
             type: post.type,
             creator: post.name,
-            body: post.body
+            body: post.body,
+            time: {
+                days: 0,
+                hors: 0,
+                minutes: 0,
+                seconds: 0,
+                timer: () => {
+                    setInterval(() => {
+                        state.rooms[post.room].posts[id].time.seconds++
+                            if (state.rooms[post.room].posts[id].time.seconds == 60) {
+                                state.rooms[post.room].posts[id].time.seconds = 0
+                                state.rooms[post.room].posts[id].time.minutes++
+                                    if (state.rooms[post.room].posts[id].time.minutes == 60) {
+                                        state.rooms[post.room].posts[id].time.minutes = 0
+                                        state.rooms[post.room].posts[id].time.hors++
+                                            if (state.rooms[post.room].posts[id].time.hors == 24) {
+                                                state.rooms[post.room].posts[id].time.hors = 0
+                                                state.rooms[post.room].posts[id].time.days++
+                                            }
+                                    }
+                                refresh.posts(post.room)
+                            }
+                    }, 1000)
+                }
+            }
         }
+
+        state.rooms[post.room].posts[id].time.timer()
 
         if (post.type == "post") {
             console.log(`${post.idCreator} send post room ${post.room}!`);
@@ -124,7 +151,6 @@ app.use(express.static("public"))
 server.listen(port, () => {
     console.log(`Server running on port ${port}`)
 })
-
 
 sockets.on("connection", (socket) => {
     onEvents.createUser(socket.id)
